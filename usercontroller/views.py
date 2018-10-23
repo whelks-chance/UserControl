@@ -6,6 +6,7 @@ from django.shortcuts import render
 import uuid
 import subprocess
 import sys
+import crypt
 
 # Create your views here.
 from usercontroller import models
@@ -21,24 +22,33 @@ def remove_openssh_user(db_user):
     result = ssh.stdout.readlines()
     if result == []:
         error = ssh.stderr.readlines()
-        print(sys.stderr, "ERROR: %s".format(error))
+        print(sys.stderr, "ERROR: {}".format(error))
         return False
     else:
         print(result)
         return True
 
-def create_openssh_user(username, password):
 
-    ssh = subprocess.Popen(["useradd", "-M", username, "--shell", "/bin/false"],
+def create_openssh_user(username, password):
+    print(username, 'length {}'.format(len(username)))
+    crypted_password = crypt.crypt(password)
+    print(password, crypted_password)
+
+    ssh = subprocess.Popen(["useradd", username,
+                            "--password", crypted_password,
+                            "-M",
+                            "--shell", "/bin/false"],
                            shell=False,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
     result = ssh.stdout.readlines()
     if result == []:
         error = ssh.stderr.readlines()
-        print(sys.stderr, "ERROR: %s".format(error))
+        print(sys.stderr, "ERROR: {}".format(error))
+        return False
     else:
         print(result)
+        return True
 
 
 def disable_user(db_user):
@@ -88,12 +98,20 @@ def check_users(request):
 def generate_new_user(request):
     errors = []
 
-    username = uuid.uuid4()
+    # Apparently we have a 32 char username limit, so trim what we have
+    username = 'u{}'.format(
+        ''.join(str(uuid.uuid4())[:31])
+    )
     password = uuid.uuid4()
 
     if username and password:
-        new_user = models.User(username=username)
-        new_user.save()
+        success = create_openssh_user(username, str(password))
+        if success:
+            new_user = models.User(username=username)
+            print(new_user)
+            new_user.save()
+        else:
+            errors.append('Failed to create user {}'.format(username))
 
     api_data = {
         'username': str(username),

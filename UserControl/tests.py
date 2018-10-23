@@ -26,5 +26,5 @@ class Tests:
 if __name__ == '__main__':
     t = Tests()
 
-    # t.create_user()
+    t.create_user()
     t.check_users()
