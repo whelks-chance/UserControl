@@ -4,7 +4,9 @@ Django app, python 3.5.2
 
 Copy into place, run 
 
-    python migrate
+    pip install -r requirements.txt
+
+    python manage.py migrate
     
     python manage.py runserver
     

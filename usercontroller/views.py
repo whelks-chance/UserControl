@@ -95,6 +95,7 @@ def check_users(request):
     }
     return HttpResponse(json.dumps(api_data, indent=4), content_type="application/json")
 
+
 def generate_new_user(request):
     errors = []
 
