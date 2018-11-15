@@ -60,7 +60,7 @@ def disable_user(db_user):
     db_user.save()
 
 
-def check_users(request):
+def disable_expired_users(request):
     active_users = []
     disabled_users = []
     users_disabled = []
