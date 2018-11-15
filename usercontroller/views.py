@@ -17,7 +17,7 @@ def remove_openssh_user(db_user):
     assert isinstance(db_user, models.User)
     username = db_user.username
     ssh = subprocess.Popen(["sudo",
-                           "/home/usercontroller/addsftpuser.sh",
+                           "/home/usercontroller/remsftpuser.sh",
                            username],
                            shell=False,
                            stdout=subprocess.PIPE,
