@@ -15,7 +15,9 @@ from usercontroller import models
 def remove_openssh_user(db_user):
     assert isinstance(db_user, models.User)
     username = db_user.username
-    ssh = subprocess.Popen(["userdel", username],
+    ssh = subprocess.Popen(["sudo",
+                           "/home/usercontroller/addsftpuser.sh",
+                           username],
                            shell=False,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
@@ -34,10 +36,10 @@ def create_openssh_user(username, password):
     crypted_password = crypt.crypt(password)
     print(password, crypted_password)
 
-    ssh = subprocess.Popen(["useradd", username,
-                            "--password", crypted_password,
-                            "-M",
-                            "--shell", "/bin/false"],
+    ssh = subprocess.Popen(["sudo",
+                           "/home/usercontroller/addsftpuser.sh",
+                           username,
+                           crypted_password],
                            shell=False,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
