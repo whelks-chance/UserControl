@@ -21,6 +21,6 @@ from usercontroller import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('generate_new_user', views.generate_new_user, name='generate_new_user'),
-    path('check_users', views.check_users, name='check_users')
+    path('disable_expired_users', views.disable_expired_users, name='disable_expired_users')
 
 ]

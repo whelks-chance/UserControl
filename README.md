@@ -12,6 +12,6 @@ Copy into place, run
     
 Two endpoints:
 
-/generate_new_user and /check_users
+/generate_new_user and /disable_expired_users
 
 UserControl/tests.py runs both with http GET to check successful creation and removal of users.

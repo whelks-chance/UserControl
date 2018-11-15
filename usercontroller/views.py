@@ -9,6 +9,7 @@ import sys
 import crypt
 
 # Create your views here.
+from UserControl.settings import ACCOUNT_TIMEOUT_SECONDS, README_MSG
 from usercontroller import models
 
 
@@ -59,24 +60,24 @@ def disable_user(db_user):
     db_user.save()
 
 
-def check_users(request):
+def disable_expired_users(request):
     active_users = []
     disabled_users = []
     users_disabled = []
     errors = []
 
-    print(60 * 60 * 24)
+    print(ACCOUNT_TIMEOUT_SECONDS)
     for u in models.User.objects.all():
         if not u.disabled:
             print(datetime.datetime.now(tz=datetime.timezone.utc))
             print(u.created)
             time_diff = datetime.datetime.now(tz=datetime.timezone.utc) - u.created
 
-            print('\n', time_diff, type(time_diff))
+            print('\n', time_diff)
             print(time_diff.total_seconds())
-            print(time_diff.total_seconds() > 60 * 60 * 24)
+            print(time_diff.total_seconds() > ACCOUNT_TIMEOUT_SECONDS)
 
-            if time_diff.total_seconds() > 60 * 60 * 24:
+            if time_diff.total_seconds() > ACCOUNT_TIMEOUT_SECONDS:
                 success = remove_openssh_user(u)
 
                 if success:
@@ -90,6 +91,7 @@ def check_users(request):
             disabled_users.append(u.username)
 
     api_data = {
+        'README': README_MSG.format(ACCOUNT_TIMEOUT_SECONDS),
         'active_users': active_users,
         'disabled_users': disabled_users,
         'users_disabled': users_disabled,
