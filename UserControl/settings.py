@@ -123,7 +123,7 @@ STATIC_URL = '/static/'
 TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'templates'),)
 
 README_MSG = 'Accounts more than {} seconds old have been deactivated. Errors show if deactivation failed. disabled_users were disabled on a previous run. users_disabled were disabled this run.'
-ACCOUNT_TIMEOUT_SECONDS = 60 * 60 * 24
+ACCOUNT_TIMEOUT_SECONDS = 60 * 1
 
 try:
     from settings_local import *
