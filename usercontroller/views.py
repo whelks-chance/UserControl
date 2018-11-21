@@ -23,13 +23,15 @@ def remove_openssh_user(db_user):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
     result = ssh.stdout.readlines()
+    error = ssh.stderr.readlines()
+
     if result == []:
         error = ssh.stderr.readlines()
         print(sys.stderr, "ERROR: {}".format(error))
-        return False
+        return False, result, error
     else:
         print(result)
-        return True
+        return True, result, error
 
 
 def create_openssh_user(username, password):
@@ -45,13 +47,14 @@ def create_openssh_user(username, password):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
     result = ssh.stdout.readlines()
+    error = ssh.stderr.readlines()
+
     if result == []:
-        error = ssh.stderr.readlines()
         print(sys.stderr, "ERROR: {}".format(error))
-        return False
+        return False, result, error
     else:
         print(result)
-        return True
+        return True, result, error
 
 
 def disable_user(db_user):
@@ -78,13 +81,18 @@ def disable_expired_users(request):
             print(time_diff.total_seconds() > ACCOUNT_TIMEOUT_SECONDS)
 
             if time_diff.total_seconds() > ACCOUNT_TIMEOUT_SECONDS:
-                success = remove_openssh_user(u)
+                success, result, error = remove_openssh_user(u)
 
                 if success:
                     disable_user(u)
                     users_disabled.append(u.username)
                 else:
-                    errors.append(u.username)
+                    if len(error):
+                        if 'does not exist' in error[0]:
+                            errors.append("System user {} does not exist, disabling user in DB.".format(u.username))
+                            disable_user(u)
+                    else:
+                        errors.append("Failed to remove system user {}.".format(u.username))
             else:
                 active_users.append(u.username)
         else:
