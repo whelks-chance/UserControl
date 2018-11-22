@@ -127,6 +127,7 @@ README_MSG = 'Accounts more than {} seconds old have been deactivated. Errors sh
 ACCOUNT_TIMEOUT_SECONDS = 60 * 1
 
 try:
-    from settings_local import *
-except ImportError:
+    from UserControl.settings_local import *
+except ImportError as e1:
+    print(e1)
     pass

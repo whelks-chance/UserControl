@@ -16,21 +16,23 @@ from usercontroller import models
 def remove_openssh_user(db_user):
     assert isinstance(db_user, models.User)
     username = db_user.username
-    ssh = subprocess.Popen(["sudo",
+
+    # "sudo /home/usercontroller/remsftpuser.sh username"
+    rem_user_proc = subprocess.Popen(["sudo",
                            "/home/usercontroller/remsftpuser.sh",
                            username],
                            shell=False,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
-    result = ssh.stdout.readlines()
-    error = ssh.stderr.readlines()
+    rem_user_proc.wait()
+    result = rem_user_proc.stdout.readlines()
+    error = rem_user_proc.stderr.readlines()
 
     if result == []:
-        error = ssh.stderr.readlines()
-        print(sys.stderr, "ERROR: {}".format(error))
+        print("ERROR: {}: {}".format(result, error))
         return False, result, error
     else:
-        print(result)
+        print("SUCCESS: {}: {}".format(result, error))
         return True, result, error
 
 
@@ -50,7 +52,7 @@ def create_openssh_user(username, password):
     error = ssh.stderr.readlines()
 
     if result == []:
-        print(sys.stderr, "ERROR: {}".format(error))
+        print("ERROR: {}".format(error))
         return False, result, error
     else:
         print(result)
@@ -67,43 +69,73 @@ def disable_expired_users(request):
     active_users = []
     disabled_users = []
     users_disabled = []
-    errors = []
+    activities = []
 
-    print(ACCOUNT_TIMEOUT_SECONDS)
+    print("Max account age is {} seconds".format(ACCOUNT_TIMEOUT_SECONDS))
     for u in models.User.objects.all():
+        activity_dict = {
+            'USERNAME': u.username,
+            'START_DISABLED': u.disabled
+        }
         if not u.disabled:
-            print(datetime.datetime.now(tz=datetime.timezone.utc))
-            print(u.created)
-            time_diff = datetime.datetime.now(tz=datetime.timezone.utc) - u.created
+            time_now = datetime.datetime.now(tz=datetime.timezone.utc)
+            print('\nTime now {}'.format(time_now))
+            activity_dict['TIME_NOW'] = str(time_now)
 
-            print('\n', time_diff)
-            print(time_diff.total_seconds())
-            print(time_diff.total_seconds() > ACCOUNT_TIMEOUT_SECONDS)
+            print('Time user created {}'.format(
+                u.created
+            ))
+            activity_dict['USER_CREATED'] = str(time_now)
 
-            if time_diff.total_seconds() > ACCOUNT_TIMEOUT_SECONDS:
+            time_diff = time_now - u.created
+            print('Account age {} seconds'.format(time_diff.total_seconds()))
+            activity_dict['ACCOUNT_AGE'] = time_diff.total_seconds()
+
+            should_disable_account = time_diff.total_seconds() > ACCOUNT_TIMEOUT_SECONDS
+            activity_dict['SHOULD_DISABLE'] = should_disable_account
+
+            if should_disable_account:
+                disable_log = []
+                print('Account will be disabled.')
                 success, result, error = remove_openssh_user(u)
 
                 if success:
+                    disable_log.append('Successfully removed system user.')
                     disable_user(u)
+                    disable_log.append('Successfully disabled user profile.')
                     users_disabled.append(u.username)
                 else:
+                    disable_log.append("Failed to remove system user {}".format(u.username))
+
                     if len(error):
-                        if 'does not exist' in error[0]:
-                            errors.append("System user {} does not exist, disabling user in DB.".format(u.username))
+                        if b'does not exist' in error[0]:
+                            disable_log.append("System user {} does not exist.")
+                            disable_log.append("Disabling user in DB.".format(u.username))
                             disable_user(u)
+                            disable_log.append('Successfully disabled user profile.')
+                        else:
+                            disable_log.append("Error: {}".format(error))
+                            disable_log.append("User {} will remain active.".format(u.username))
+                            active_users.append(u.username)
                     else:
-                        errors.append("Failed to remove system user {}.".format(u.username))
+                        disable_log.append("No error discription available")
+                        disable_log.append("User {} will remain active.".format(u.username))
+                        active_users.append(u.username)
+
+                activity_dict['DISABLE_LOG'] = disable_log
             else:
+                print('Account will remain enabled.')
                 active_users.append(u.username)
         else:
             disabled_users.append(u.username)
+        activities.append(activity_dict)
 
     api_data = {
         'README': README_MSG.format(ACCOUNT_TIMEOUT_SECONDS),
         'active_users': active_users,
         'disabled_users': disabled_users,
         'users_disabled': users_disabled,
-        'errors': errors
+        'activities': activities
     }
     return HttpResponse(json.dumps(api_data, indent=4), content_type="application/json")
 
